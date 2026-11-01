@@ -82,6 +82,32 @@ impl<'a> Titles<'a> {
       && slots.right.is_some() == right.is_some()
   }
 
+  /// The first span of the first left title (the heading) in `color`.
+  fn tint_heading(mut self, color: ratatui::style::Color) -> Self {
+    if let Some(span) = self.left.first_mut().and_then(|line| line.spans.first_mut()) {
+      span.style = span.style.fg(color);
+    }
+    self
+  }
+
+  /// Draws the titles flush on row `area.y`: the left ones from `area.x`, two cells apart, the right
+  /// one against the right edge when it doesn't overlap them.
+  fn render_flush(self, area: Rect, buf: &mut Buffer, style: Style) {
+    let mut x = area.x;
+    for line in self.left {
+      let line = line.patch_style(style);
+      let room = area.right().saturating_sub(x);
+      let (end, _) = buf.set_line(x, area.y, &line, room);
+      x = end + 2;
+    }
+    if let Some(line) = self.right {
+      let width = width_u16(&line);
+      if area.right() >= x + width {
+        buf.set_line(area.right() - width, area.y, &line.patch_style(style), width);
+      }
+    }
+  }
+
   /// Draws the titles over the top border of `area`; unstyled text gets `style`.
   fn render(self, area: Rect, buf: &mut Buffer, style: Style) {
     let pad = |line: Line<'a>| {
@@ -170,6 +196,14 @@ pub(super) fn draw_box(f: &mut Frame, area: Rect, titles: Titles) -> Rect {
   // title text without a color of its own in the text color, not the border's
   titles.render(area, f.buffer_mut(), Style::new().fg(theme::TEXT));
   inner
+}
+
+/// Draws a metric tile without borders: `titles` on its first row, a gutter of one column on
+/// both sides and a blank row under it. Returns the area for the graph.
+pub(super) fn draw_tile(f: &mut Frame, area: Rect, titles: Titles) -> Rect {
+  let area = Rect { x: area.x + 1, width: area.width.saturating_sub(2), ..area };
+  titles.render_flush(area, f.buffer_mut(), Style::new().fg(theme::TEXT));
+  Rect { y: area.y + 1, height: area.height.saturating_sub(2), ..area }
 }
 
 /// Draws a divider across box `area` at row `y`, `├──┤` in the border color, with `titles` on it
@@ -376,10 +410,10 @@ impl App {
       return;
     }
 
-    let fans = self.fans.label();
     for &(kind, r) in &plan.boxes {
       let metric = self.metric_box(kind);
-      let inner = draw_box(f, r, fit_titles(r.width, metric.titles));
+      let titles = fit_titles(r.width.saturating_sub(2), metric.titles).tint_heading(metric_color(kind));
+      let inner = draw_tile(f, r, titles);
       let graph = Graph::new(metric.data).three_levels(self.three_level_bars);
       match metric.scale {
         Scale::Load { load, .. } if self.cfg.view_type == ViewType::Gauge => {
@@ -389,10 +423,6 @@ impl App {
         Scale::Power => f.render_widget(graph.color(metric_color(kind)), inner),
       }
 
-      // the fans (`1200 rpm`) right on the bottom border of the total power box
-      if kind == Metric::TotalPower && !fans.is_empty() && r.height >= 2 {
-        render_bottom_border(f, r, vec![vec![text(fans.clone())]], |_| vec![]);
-      }
     }
   }
 
@@ -548,11 +578,16 @@ impl App {
   /// ANE, without the system power sensor. The fans go on its bottom border (`render_metrics_box`).
   fn total_power_box(&self) -> MetricBox<'_> {
     // the newest sample, not the smoothed `top_value`, so the box switches as soon as it reads 0
-    if self.sys_power.items.first().is_some_and(|&mw| mw > 0) {
+    let mut boxed = if self.sys_power.items.first().is_some_and(|&mw| mw > 0) {
       self.power_box("Total", &self.sys_power, None)
     } else {
       self.power_box("Power", &self.all_power, None)
+    };
+    let fans = self.fans.label();
+    if !fans.is_empty() {
+      boxed.titles = boxed.titles.into_iter().map(|t| t.right(dim(fans.clone()))).collect();
     }
+    boxed
   }
 }
 
