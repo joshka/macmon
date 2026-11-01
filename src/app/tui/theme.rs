@@ -40,6 +40,9 @@ pub(super) struct Palette {
   pub(super) power: Color,
   /// The rest of the system in the stacked power graph.
   pub(super) rest: Color,
+  /// Background of overlays and of their title band; `Reset` in ANSI.
+  pub(super) raised: Color,
+  pub(super) raised_band: Color,
 }
 
 impl Palette {
@@ -64,6 +67,8 @@ impl Palette {
     ram: Color::Blue,
     power: Color::Reset,
     rest: Color::DarkGray,
+    raised: Color::Reset,
+    raised_band: Color::Reset,
   };
 
   /// macmon's own dark theme.
@@ -84,6 +89,8 @@ impl Palette {
     ram: Color::Rgb(0x5c, 0xa8, 0xff),
     power: Color::Rgb(0xdc, 0xe1, 0xeb),
     rest: Color::Rgb(0x3a, 0x40, 0x50),
+    raised: Color::Rgb(0x22, 0x27, 0x34),
+    raised_band: Color::Rgb(0x2c, 0x33, 0x44),
   };
 }
 

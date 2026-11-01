@@ -147,7 +147,7 @@ fn bar_level(value: u64, max: u64, levels: u64) -> u64 {
 mod tests {
   use ratatui::buffer::Buffer;
   use ratatui::layout::Rect;
-  use ratatui::style::{Color, Style};
+  use ratatui::style::Color;
   use ratatui::widgets::Widget;
 
   use super::{Gauge, Graph};

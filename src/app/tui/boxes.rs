@@ -237,9 +237,48 @@ pub(super) fn draw_section(f: &mut Frame, area: Rect, titles: Titles) -> Rect {
   Rect { y: area.y + 1, height: area.height.saturating_sub(1), ..area }
 }
 
+/// Draws an overlay over `area` and returns the area inside, as `draw_box` does. In RGB the screen
+/// behind is dimmed and the overlay is a raised panel with `titles` on a band instead of a border;
+/// in ANSI it is a rounded box.
+pub(super) fn draw_overlay(f: &mut Frame, area: Rect, titles: Titles) -> Rect {
+  let pal = theme::pal();
+  if !pal.rgb {
+    return draw_box(f, area, titles);
+  }
+  let buf = f.buffer_mut();
+  let screen = buf.area;
+  for y in screen.top()..screen.bottom() {
+    for x in screen.left()..screen.right() {
+      let cell = &mut buf[(x, y)];
+      let (fg, bg) = (cell.fg, cell.bg);
+      cell.set_fg(theme::mix(fg, pal.bg, 0.6)).set_bg(theme::mix(bg, pal.bg, 0.6));
+    }
+  }
+  buf.set_style(area, Style::new().bg(pal.raised).fg(pal.text));
+  let band = Rect { height: 1, ..area };
+  buf.set_style(band, Style::new().bg(pal.raised_band));
+  let row = Rect { x: area.x + 1, width: area.width.saturating_sub(2), ..band };
+  titles.render_flush(row, buf, Style::new().fg(pal.text));
+  Rect {
+    x: area.x + 1,
+    y: area.y + 1,
+    width: area.width.saturating_sub(2),
+    height: area.height.saturating_sub(2),
+  }
+}
+
 /// Draws a divider across box `area` at row `y`, `├──┤` in the border color, with `titles` on it
 /// as on the top border.
 pub(super) fn draw_divider(f: &mut Frame, area: Rect, y: u16, titles: Titles) {
+  let pal = theme::pal();
+  if pal.rgb {
+    // a band instead of a line
+    let band = Rect { y, height: 1, ..area };
+    f.buffer_mut().set_style(band, Style::new().bg(pal.raised_band));
+    let row = Rect { x: area.x + 1, width: area.width.saturating_sub(2), ..band };
+    titles.render_flush(row, f.buffer_mut(), Style::new().fg(pal.text));
+    return;
+  }
   let line = format!("├{}┤", "─".repeat(usize::from(area.width.saturating_sub(2))));
   f.buffer_mut().set_string(area.x, y, line, theme::pal().border);
   titles.render(Rect { y, height: 1, ..area }, f.buffer_mut(), Style::new().fg(theme::pal().text));

@@ -9,7 +9,7 @@ use ratatui::layout::Rect;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Clear;
 
-use super::boxes::{Titles, cells, draw_box, draw_scrollbar, hint};
+use super::boxes::{Titles, cells, draw_overlay, draw_scrollbar, hint};
 use super::theme::{self, faint, heading, link, text};
 
 /// One line of the help.
@@ -126,7 +126,7 @@ pub(super) fn render(f: &mut Frame, area: Rect, scroll: usize) -> usize {
   let titles = Titles::new(heading("help")).right(hint("Esc", "close"));
 
   f.render_widget(Clear, rect);
-  let inner = draw_box(f, rect, titles);
+  let inner = draw_overlay(f, rect, titles);
   let buf = f.buffer_mut();
   let text_width = inner.width.saturating_sub(2);
   // the support line is the last one, centered; the rest start at the left

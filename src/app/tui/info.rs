@@ -8,7 +8,7 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::Clear;
 
 use super::boxes::{
-  Titles, draw_box, draw_divider, draw_scrollbar, hint, join, render_bottom_border, title_text_room,
+  Titles, draw_divider, draw_overlay, draw_scrollbar, hint, join, render_bottom_border, title_text_room,
 };
 use super::kill::{ProcSys, failure};
 use super::proc_view::{
@@ -293,7 +293,7 @@ impl Info {
     let rows = self.rows();
     let actions = || join([hint("c", "copy"), hint("e", "finder")]);
     let titles = if self.typing || rows.is_empty() { titles } else { titles.right(actions()) };
-    let mut list = draw_box(f, area, titles);
+    let mut list = draw_overlay(f, area, titles);
     if self.files.is_ok() && list.height >= COUNTS_MIN_HEIGHT {
       f.render_widget(self.counts(&rows, usize::from(list.width)), list);
       (list.y, list.height) = (list.y + 1, list.height - 1);

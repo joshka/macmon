@@ -12,7 +12,7 @@ use ratatui::layout::{Constraint, Margin, Position, Rect};
 use ratatui::text::{Line, Text};
 use ratatui::widgets::Clear;
 
-use super::boxes::{Titles, cells, draw_box};
+use super::boxes::{Titles, cells, draw_overlay};
 use super::proc_view::{cut_end, cut_start};
 use super::theme::{self, dim, faint, heading, text};
 use crate::fds::{self, OpenFile};
@@ -217,7 +217,7 @@ impl Kill {
     f.render_widget(Clear, rect);
     // cut by hand, so `?` stays: `Kill ` and `?` and a blank cell and a border cell on both sides
     let name = cut_end(&proc.name, width.saturating_sub(12)) + if ok { "?" } else { "" };
-    let inner = draw_box(f, rect, Titles::new(heading(format!("Kill {name}"))));
+    let inner = draw_overlay(f, rect, Titles::new(heading(format!("Kill {name}"))));
     // a blank row above, between and below when there is room
     let gap = u16::from(inner.height >= rows + 4);
     f.render_widget(Text::from_iter(lines), inner.inner(Margin::new(2, gap)));
