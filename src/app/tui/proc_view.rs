@@ -789,7 +789,7 @@ impl ProcView {
   /// `filter_titles` shows it, then `sort`, and `info | finder | copy | kill` on the
   /// right with a process selected (neither while typing: keys are text then).
   fn titles(&self, width: u16) -> Titles<'_> {
-    let mut name = vec![heading("proc")];
+    let mut name = vec![heading("Processes")];
     if let Some(procs) = self.procs() {
       let total = procs.len().to_string();
       // padded to the digits of the total, so the filter after it stays put while it is typed
@@ -798,7 +798,7 @@ impl ProcView {
       } else {
         format!(" {:>width$}/{total}", self.row_count(), width = total.len())
       };
-      name.push(text(count));
+      name.push(dim(count));
     }
 
     let titles = filter_titles(name, &self.filter, self.typing, width);
