@@ -571,8 +571,9 @@ impl App {
       f.buffer_mut().set_style(area, Style::new().bg(theme::pal().surface_alt));
     }
     let version = format!("v{} ", env!("CARGO_PKG_VERSION"));
-    let tab = Span::styled(" macmon ", Style::new().fg(theme::pal().key).add_modifier(ratatui::style::Modifier::REVERSED | ratatui::style::Modifier::BOLD));
-    let mut spans = vec![tab, text(" ")];
+    // the app name bold in the text color: the accent is only for things you can press
+    let tab = Span::styled("macmon", Style::new().fg(theme::pal().text).add_modifier(ratatui::style::Modifier::BOLD));
+    let mut spans = vec![text(" "), tab, dim("  ·  ")];
     spans.extend(self.chip_title().spans);
     f.render_widget(Line::from(spans), area);
     f.render_widget(Line::from(dim(version)).right_aligned(), area);
