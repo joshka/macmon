@@ -23,6 +23,8 @@ const PROC_CHROME: u16 = 3;
 pub(super) enum Metric {
   /// CPU cluster, by index into the cluster list.
   Cluster(usize),
+  /// Every CPU cluster in one graph, stacked by core count.
+  Cpu,
   Gpu,
   Ram,
   CpuPower,
@@ -46,7 +48,10 @@ pub(super) struct LayoutPlan {
 
 /// Boxes of the top row: CPU clusters, GPU, RAM.
 fn top_row(clusters: usize) -> Vec<Metric> {
-  let mut boxes: Vec<Metric> = (0..clusters).map(Metric::Cluster).collect();
+  let mut boxes: Vec<Metric> = match clusters {
+    0 | 1 => (0..clusters).map(Metric::Cluster).collect(),
+    _ => vec![Metric::Cpu],
+  };
   boxes.extend([Metric::Gpu, Metric::Ram]);
   boxes
 }

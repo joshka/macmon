@@ -356,7 +356,7 @@ pub(super) fn render_bottom_border(
 /// The identity color of `metric`, shared by a unit and its power.
 fn metric_color(metric: Metric) -> ratatui::style::Color {
   match metric {
-    Metric::Cluster(_) | Metric::CpuPower => theme::CPU,
+    Metric::Cluster(_) | Metric::Cpu | Metric::CpuPower => theme::CPU,
     Metric::Gpu | Metric::GpuPower => theme::GPU,
     Metric::AnePower => theme::ANE,
     Metric::Ram => theme::RAM,
@@ -422,6 +422,10 @@ impl App {
       let metric = self.metric_box(kind);
       let titles = fit_titles(r.width.saturating_sub(2), metric.titles).tint_heading(metric_color(kind));
       let inner = draw_tile(f, r, titles);
+      if kind == Metric::Cpu {
+        self.render_cpu_stack(f, inner);
+        continue;
+      }
       let graph = Graph::new(metric.data).three_levels(self.three_level_bars);
       match metric.scale {
         Scale::Load { load, .. } if self.cfg.view_type == ViewType::Gauge => {
@@ -498,6 +502,7 @@ impl App {
         };
         self.freq_box(label, &cluster.freq)
       }
+      Metric::Cpu => self.cpu_box(),
       Metric::Gpu => self.freq_box("GPU".to_string(), &self.igpu_freq),
       Metric::Ram => self.ram_box(),
       Metric::CpuPower => self.power_box("CPU", &self.cpu_power, self.cpu_temp.last()),
@@ -505,6 +510,54 @@ impl App {
       Metric::AnePower => self.power_box("ANE", &self.ane_power, None),
       Metric::TotalPower => self.total_power_box(),
     }
+  }
+
+  /// Clusters weighted by core count, lowest tier first: (share of all cores, ratio history).
+  fn cluster_shares(&self) -> Vec<(f64, &[u64], f64)> {
+    let total = self.clusters.items.iter().map(|c| c.count).sum::<usize>().max(1) as f64;
+    let mode = self.cfg.ratio_mode;
+    let shares = self.clusters.items.iter().map(|c| {
+      let series = c.freq.ratio(mode);
+      (c.count as f64 / total, series.items.as_slice(), series.ratio)
+    });
+    shares.collect()
+  }
+
+  /// `CPU 31%  E 20%  P 35%` over the clusters stacked by core count, `3318 MHz` (the top tier) right.
+  fn cpu_box(&self) -> MetricBox<'_> {
+    let shares = self.cluster_shares();
+    let load: f64 = shares.iter().map(|(w, _, r)| w * r).sum();
+    let mut full = vec![heading("CPU"), text(" "), self.percent(load, 0)];
+    let short = full.clone();
+    for (cluster, (_, _, ratio)) in self.clusters.items.iter().zip(&shares) {
+      full.extend([text("  "), dim(format!("{} ", cluster.label)), self.percent(*ratio, 0)]);
+    }
+    let mut titles = vec![Titles::new(full), Titles::new(short)];
+    if let Some(top) = self.clusters.items.last().filter(|c| c.freq.freq_mhz > 0) {
+      titles[0] = std::mem::take(&mut titles[0]).right(dim(format!("{} MHz", top.freq.freq_mhz)));
+    }
+    MetricBox { titles, data: &[], scale: Scale::Load { max: 100, load } }
+  }
+
+  /// The CPU clusters stacked in `area`, lower tiers dim.
+  fn render_cpu_stack(&self, f: &mut Frame, area: Rect) {
+    let shares = self.cluster_shares();
+    let width = usize::from(area.width);
+    let scaled: Vec<Vec<f64>> = shares
+      .iter()
+      .map(|(w, items, _)| items.iter().take(width).map(|&pct| w * pct as f64 / 100.0).collect())
+      .collect();
+    let last = scaled.len().saturating_sub(1);
+    let layers = scaled
+      .iter()
+      .enumerate()
+      .map(|(i, data)| {
+        let style = Style::new().fg(theme::CPU);
+        let style = if i < last { style.add_modifier(ratatui::style::Modifier::DIM) } else { style };
+        (data.as_slice(), style)
+      })
+      .collect();
+    f.render_widget(crate::tui::widgets::Stacked { layers }, area);
   }
 
   /// `E-CPU 42% @ 1800 MHz` (the percent colored by load), or `E-CPU 42%` when the frequency

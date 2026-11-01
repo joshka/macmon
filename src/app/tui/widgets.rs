@@ -7,7 +7,7 @@
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
-use ratatui::style::Color;
+use ratatui::style::{Color, Style};
 use ratatui::widgets::Widget;
 
 use super::theme::gradient;
@@ -141,7 +141,7 @@ fn bar_level(value: u64, max: u64, levels: u64) -> u64 {
 mod tests {
   use ratatui::buffer::Buffer;
   use ratatui::layout::Rect;
-  use ratatui::style::Color;
+  use ratatui::style::{Color, Style};
   use ratatui::widgets::Widget;
 
   use super::{Gauge, Graph};
@@ -214,5 +214,42 @@ mod tests {
     }
     // in the load color of the ratio
     assert_eq!(draw(Gauge::new(0.5), 4, 1)[(0, 0)].fg, Color::Yellow);
+  }
+}
+
+/// Graph of layers stacked from the bottom, newest sample on the right: each layer a share of the
+/// height (`0.0..=1.0` per sample, newest first) in its own style. Lower layers end on whole cells,
+/// the top layer in eighths.
+pub(super) struct Stacked<'a> {
+  pub(super) layers: Vec<(&'a [f64], Style)>,
+}
+
+impl Widget for Stacked<'_> {
+  fn render(self, area: Rect, buf: &mut Buffer) {
+    let area = area.intersection(buf.area);
+    let levels = f64::from(area.height) * 8.0;
+    for (i, x) in (area.left()..area.right()).rev().enumerate() {
+      let mut start = 0u64;
+      for (n, (data, style)) in self.layers.iter().enumerate() {
+        let Some(&share) = data.get(i) else { break };
+        let top = n + 1 == self.layers.len();
+        let mut end = start + (share.clamp(0.0, 1.0) * levels).round() as u64;
+        if !top {
+          end = end.div_ceil(8) * 8;
+        }
+        let mut level = start;
+        while level < end {
+          let row = (level / 8) as u16;
+          if row >= area.height {
+            break;
+          }
+          let eighths = (end - level).min(8 - level % 8);
+          let symbol = if level % 8 == 0 { bar_symbol(eighths, false) } else { FULL };
+          buf[(x, area.bottom() - 1 - row)].set_char(symbol).set_style(*style);
+          level += eighths;
+        }
+        start = end;
+      }
+    }
   }
 }
