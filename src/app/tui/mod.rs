@@ -544,7 +544,8 @@ impl App {
   }
 
   fn render(&mut self, f: &mut Frame) {
-    let [header, body, footer] = Layout::vertical([
+    let [header, _, body, footer] = Layout::vertical([
+      Constraint::Length(1),
       Constraint::Length(1),
       Constraint::Fill(1),
       Constraint::Length(1),
