@@ -840,7 +840,12 @@ impl App {
     self.proc_view.targets = Targets { area, headers, body };
 
     let view = &self.proc_view;
-    draw_scrollbar(f, area, body, view.row_count(), view.offset);
+    // in RGB inside the panel (its last column), not in the gutter beside it
+    let bar = match theme::pal().rgb {
+      true => Rect { x: area.x + 1, width: area.width.saturating_sub(2), ..area },
+      false => area,
+    };
+    draw_scrollbar(f, bar, body, view.row_count(), view.offset);
     let _ = power_shown;
   }
 
