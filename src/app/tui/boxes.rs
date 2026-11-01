@@ -419,6 +419,16 @@ pub(super) fn render_bottom_border(
 const POWER_FLOOR_MW: u64 = 2_000;
 const TOTAL_FLOOR_MW: u64 = 5_000;
 
+/// Style of a CPU tier in the stacked CPU graph: lower tiers in `cpu_low`, or faint `cpu` in ANSI.
+fn tier_style(lower: bool) -> Style {
+  let pal = theme::pal();
+  match (lower, pal.cpu_low) {
+    (false, _) => Style::new().fg(pal.cpu),
+    (true, Some(low)) => Style::new().fg(low),
+    (true, None) => Style::new().fg(pal.cpu).add_modifier(ratatui::style::Modifier::DIM),
+  }
+}
+
 /// The identity color of `metric`, shared by a unit and its power.
 fn metric_color(metric: Metric) -> ratatui::style::Color {
   match metric {
@@ -610,8 +620,11 @@ impl App {
     let load: f64 = shares.iter().map(|(w, _, r)| w * r).sum();
     let mut full = vec![heading("CPU"), text(" "), self.percent(load, 0)];
     let short = full.clone();
-    for (cluster, (_, _, ratio)) in self.clusters.items.iter().zip(&shares) {
-      full.extend([text("  "), dim(format!("{} ", cluster.label)), self.percent(*ratio, 0)]);
+    let last = shares.len().saturating_sub(1);
+    for (i, (cluster, (_, _, ratio))) in self.clusters.items.iter().zip(&shares).enumerate() {
+      // the tier label in its layer's color, a legend for the stack
+      let label = Span::styled(format!("{} ", cluster.label), tier_style(i < last));
+      full.extend([text("  "), label, self.percent(*ratio, 0)]);
     }
     let mut titles = vec![Titles::new(full), Titles::new(short)];
     if let Some(top) = self.clusters.items.last().filter(|c| c.freq.freq_mhz > 0) {
@@ -663,8 +676,7 @@ impl App {
       .iter()
       .enumerate()
       .map(|(i, data)| {
-        let style = Style::new().fg(theme::pal().cpu);
-        let style = if i < last { style.add_modifier(ratatui::style::Modifier::DIM) } else { style };
+        let style = tier_style(i < last);
         (data.as_slice(), style)
       })
       .collect();

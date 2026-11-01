@@ -34,6 +34,8 @@ pub(super) struct Palette {
   pub(super) header_row: Style,
   /// Metric identity colors: a metric and its power share one, so a column reads as one metric.
   pub(super) cpu: Color,
+  /// Lower CPU tiers (E cores) in the stacked CPU graph; `None` draws them as `cpu`, faint.
+  pub(super) cpu_low: Option<Color>,
   pub(super) gpu: Color,
   pub(super) ane: Color,
   pub(super) ram: Color,
@@ -62,6 +64,7 @@ impl Palette {
     // underlined edge to edge, which reads in light and dark themes alike
     header_row: Style::new().add_modifier(Modifier::UNDERLINED),
     cpu: Color::Green,
+    cpu_low: None,
     gpu: Color::Magenta,
     ane: Color::Yellow,
     ram: Color::Blue,
@@ -84,6 +87,7 @@ impl Palette {
     selected: Style::new().fg(Color::Rgb(0xf4, 0xf6, 0xfa)).bg(Color::Rgb(0x2b, 0x3a, 0x55)),
     header_row: Style::new().bg(Color::Rgb(0x24, 0x29, 0x36)),
     cpu: Color::Rgb(0x5e, 0xd3, 0x8c),
+    cpu_low: Some(Color::Rgb(0x3a, 0xa8, 0xa0)),
     gpu: Color::Rgb(0xc0, 0x8b, 0xff),
     ane: Color::Rgb(0xff, 0xc8, 0x57),
     ram: Color::Rgb(0x5c, 0xa8, 0xff),
