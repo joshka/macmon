@@ -287,6 +287,11 @@ impl Info {
   /// with a scrollbar when they don't fit, or why there are none, and `? | q back` on the bottom
   /// border (not while typing).
   pub(super) fn render(&mut self, f: &mut Frame, area: Rect) {
+    // in RGB, on the process panel's edges
+    let area = match theme::pal().rgb {
+      true => Rect { x: area.x + 1, width: area.width.saturating_sub(2), ..area },
+      false => area,
+    };
     f.render_widget(Clear, area);
     let name = vec![heading(self.proc.name.clone()), text(format!(" {}", self.proc.pid))];
     let titles = Titles::new(name);
