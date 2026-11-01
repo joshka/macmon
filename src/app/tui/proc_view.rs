@@ -14,7 +14,7 @@ use ratatui::text::{Line, Span};
 
 use super::App;
 use super::boxes::{
-  Titles, draw_box, draw_scrollbar, hint, join, render_bottom_border, title_text_room,
+  Titles, draw_box, draw_scrollbar, hint, join, title_text_room,
 };
 use super::store::ratio;
 use super::theme::{self, dim, faint, gradient, heading, text};
@@ -814,7 +814,7 @@ impl ProcView {
   /// Left side of the bottom border of the process box: a faint `copied` after `c`, else a dim
   /// note that POWER is known for own processes only, while the POWER column shows processes
   /// without it next to some with it.
-  fn border_text(&self, power_shown: bool) -> Vec<Span<'static>> {
+  pub(super) fn border_text(&self, power_shown: bool) -> Vec<Span<'static>> {
     let procs = self.procs().unwrap_or_default();
     let power = |known: bool| procs.iter().any(|p| p.power_w.is_some() == known);
     if self.copied {
@@ -841,7 +841,7 @@ impl App {
 
     let view = &self.proc_view;
     draw_scrollbar(f, area, body, view.row_count(), view.offset);
-    render_bottom_border(f, area, self.footer_hints(), |_| view.border_text(power_shown));
+    let _ = power_shown;
   }
 
   /// Header row and process rows in `inner`, or "collecting…" until the first sample. Returns the

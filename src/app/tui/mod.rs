@@ -544,7 +544,15 @@ impl App {
   }
 
   fn render(&mut self, f: &mut Frame) {
-    let plan = self.layout_frame(f.area());
+    let [header, body, footer] = Layout::vertical([
+      Constraint::Length(1),
+      Constraint::Fill(1),
+      Constraint::Length(1),
+    ])
+    .areas(f.area());
+    let plan = self.layout_frame(body);
+    self.render_header(f, header);
+    self.render_footer(f, footer);
 
     // the key hints go on the lowest box: the process box, or the metrics box without it
     self.render_metrics_box(f, &plan);

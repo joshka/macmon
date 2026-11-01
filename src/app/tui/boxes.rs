@@ -361,8 +361,9 @@ impl App {
   /// Metrics box: chip and version in the title, the metric boxes inside and the key hints on the
   /// bottom border when it is the lowest box.
   pub(super) fn render_metrics_box(&self, f: &mut Frame, plan: &LayoutPlan) {
-    let Some(area) = plan.top else { return };
-    draw_box(f, area, self.metrics_titles());
+    if plan.top.is_none() {
+      return;
+    }
 
     let fans = self.fans.label();
     for &(kind, r) in &plan.boxes {
@@ -382,16 +383,27 @@ impl App {
         render_bottom_border(f, r, vec![vec![text(fans.clone())]], |_| vec![]);
       }
     }
-
-    let hints = if plan.proc.is_none() { self.footer_hints() } else { vec![] };
-    render_bottom_border(f, area, hints, |_| vec![]);
   }
 
-  /// Chip as in the original UI (`Apple M3 Pro (6E+6P+18GPU 36GB)`) left, `macmon vX` right; the
-  /// version gives way to the chip.
-  fn metrics_titles(&self) -> Titles<'static> {
-    let version = format!("{} v{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
-    Titles::new(self.chip_title()).right(text(version))
+  /// Header bar: the app name as a tab, the chip, the version on the right.
+  pub(super) fn render_header(&self, f: &mut Frame, area: Rect) {
+    let version = format!("v{} ", env!("CARGO_PKG_VERSION"));
+    let tab = Span::styled(" macmon ", Style::new().fg(theme::KEY).add_modifier(ratatui::style::Modifier::REVERSED | ratatui::style::Modifier::BOLD));
+    let mut spans = vec![tab, text(" ")];
+    spans.extend(self.chip_title().spans);
+    f.render_widget(Line::from(spans), area);
+    f.render_widget(Line::from(dim(version)).right_aligned(), area);
+  }
+
+  /// Footer bar: the process list's note on the left, the key hints on the right.
+  pub(super) fn render_footer(&self, f: &mut Frame, area: Rect) {
+    let hints = Line::from(join(self.footer_hints())).right_aligned();
+    let room = usize::from(area.width).saturating_sub(hints.width() + 2);
+    let note = if self.cfg.show_procs { self.proc_view.border_text(true) } else { vec![] };
+    let mut left = vec![text(" ")];
+    left.extend(cut_spans(note, room));
+    f.render_widget(Line::from(left), area);
+    f.render_widget(hints, area);
   }
 
   /// `Apple M3 Pro (6E+6P+18GPU 36GB)`, the details in parentheses dim. Core counts come from the

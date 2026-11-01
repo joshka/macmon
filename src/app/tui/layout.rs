@@ -6,7 +6,7 @@
 //! height (the top row gets the odd one). One structure at every size, only the scale changes.
 //! Without power sources (a VM) the power row is left out and the top row takes the height.
 
-use ratatui::layout::{Margin, Rect};
+use ratatui::layout::Rect;
 
 /// Share of the screen height for the metrics box over the process list, in percent.
 const METRICS_HEIGHT_PCT: u32 = 40;
@@ -99,7 +99,7 @@ pub(super) fn compute_layout(area: Rect, procs: bool, clusters: usize, power: bo
   }
   plan.top = Some(top);
 
-  let inner = top.inner(Margin::new(1, 1));
+  let inner = top;
   let upper = if power { inner.height.div_ceil(2) } else { inner.height };
   let rows = [
     (Rect { height: upper, ..inner }, top_row(clusters)),
@@ -118,7 +118,7 @@ pub(super) fn compute_layout(area: Rect, procs: bool, clusters: usize, power: bo
 
 #[cfg(test)]
 mod tests {
-  use ratatui::layout::{Margin, Rect};
+  use ratatui::layout::Rect;
 
   use super::{LayoutPlan, PROC_CHROME, PROC_MIN_ROWS, compute_layout, procs_fit};
 
@@ -205,7 +205,7 @@ mod tests {
         }
 
         // boxes sit inside the borders of the metrics box and never overlap
-        let inner = top.inner(Margin::new(1, 1));
+        let inner = top;
         for (i, (_, a)) in plan.boxes.iter().enumerate() {
           assert!(!a.is_empty() && inner.intersection(*a) == *a, "{a:?} out of {inner:?}: {ctx}");
           for (_, b) in &plan.boxes[i + 1..] {
