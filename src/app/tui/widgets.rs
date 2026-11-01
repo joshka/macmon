@@ -10,7 +10,10 @@ use ratatui::layout::Rect;
 use ratatui::style::{Color, Style};
 use ratatui::widgets::Widget;
 
-use super::theme::gradient;
+use super::theme::{gradient, mix};
+
+/// How much darker the bottom row of a graph is than the top in RGB, toward the surface.
+const SHADE: f64 = 0.3;
 
 /// Bar heights in one row: `▁` (1/8) up to `█` (8/8).
 const BAR_LEVELS: u64 = 8;
@@ -98,15 +101,18 @@ impl Widget for Graph<'_> {
     for (x, &value) in (area.left()..area.right()).rev().zip(visible) {
       let mut level = bar_level(value, max, levels);
       let color = self.color.unwrap_or_else(|| gradient(value as f64 / max as f64));
-      for y in (area.top()..area.bottom()).rev() {
+      for (row, y) in (area.top()..area.bottom()).rev().enumerate() {
         if level == 0 {
           break;
         }
 
         let eighths = level.min(BAR_LEVELS);
         let symbol = bar_symbol(eighths, self.three_levels);
+        // in RGB a darker shade toward the bottom, for depth
+        let height = (row as f64 + 0.5) / f64::from(area.height);
+        let shade = mix(color, super::theme::pal().surface, SHADE * (1.0 - height));
         if symbol != ' ' {
-          buf[(x, y)].set_char(symbol).set_fg(color);
+          buf[(x, y)].set_char(symbol).set_fg(shade);
         }
         level -= eighths;
       }
@@ -242,13 +248,19 @@ impl Widget for Stacked<'_> {
         let (bottom, top) = (row * 8, row * 8 + 7);
         let Some(lower) = at(bottom) else { break };
         let boundary = ends.iter().map(|(e, _)| *e).find(|&e| e > bottom).unwrap_or(bottom);
+        let height = (row as f64 + 0.5) / f64::from(area.height);
+        let shade = |style: Style| match style.fg {
+          Some(fg) => style.fg(mix(fg, super::theme::pal().surface, SHADE * (1.0 - height))),
+          None => style,
+        };
+        let (lower, upper_at) = (shade(lower), |level| at(level).map(shade));
         let cell = &mut buf[(x, area.bottom() - 1 - row as u16)];
         if boundary > top {
           cell.set_char(FULL).set_style(lower);
           continue;
         }
         cell.set_char(bar_symbol(boundary - bottom, false)).set_style(lower);
-        if let Some(upper) = at(top).and_then(|s| s.fg) {
+        if let Some(upper) = upper_at(top).and_then(|s| s.fg) {
           cell.set_bg(upper);
         }
       }
