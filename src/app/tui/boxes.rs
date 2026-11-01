@@ -201,6 +201,20 @@ pub(super) fn draw_box(f: &mut Frame, area: Rect, titles: Titles) -> Rect {
 /// Draws a metric tile without borders: `titles` on its first row, a gutter of one column on
 /// both sides and a blank row under it. Returns the area for the graph.
 pub(super) fn draw_tile(f: &mut Frame, area: Rect, titles: Titles) -> Rect {
+  let pal = theme::pal();
+  if pal.rgb {
+    // a surface panel with a gutter of one column and one row around it, and one cell of padding
+    let panel = Rect {
+      x: area.x + 1,
+      width: area.width.saturating_sub(2),
+      height: area.height.saturating_sub(1),
+      ..area
+    };
+    f.buffer_mut().set_style(panel, Style::new().bg(pal.surface));
+    let inner = Rect { x: panel.x + 1, width: panel.width.saturating_sub(2), ..panel };
+    titles.render_flush(inner, f.buffer_mut(), Style::new().fg(pal.text));
+    return Rect { y: inner.y + 1, height: inner.height.saturating_sub(1), ..inner };
+  }
   let area = Rect { x: area.x + 1, width: area.width.saturating_sub(2), ..area };
   titles.render_flush(area, f.buffer_mut(), Style::new().fg(theme::pal().text));
   Rect { y: area.y + 1, height: area.height.saturating_sub(2), ..area }
@@ -567,7 +581,7 @@ impl App {
       Style::new().fg(theme::pal().cpu),
       Style::new().fg(theme::pal().gpu),
       Style::new().fg(theme::pal().ane),
-      Style::new().fg(theme::pal().dim),
+      Style::new().fg(theme::pal().rest),
     ];
     let layers = data.iter().zip(styles).map(|(d, s)| (d.as_slice(), s)).collect();
     f.render_widget(crate::tui::widgets::Stacked { layers }, area);

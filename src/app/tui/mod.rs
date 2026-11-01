@@ -544,6 +544,9 @@ impl App {
   }
 
   fn render(&mut self, f: &mut Frame) {
+    let pal = theme::pal();
+    let area = f.area();
+    f.buffer_mut().set_style(area, Style::new().bg(pal.bg).fg(pal.text));
     let [header, _, body, footer] = Layout::vertical([
       Constraint::Length(1),
       Constraint::Length(1),
