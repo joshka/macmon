@@ -170,8 +170,8 @@ mod tests {
       let cells = x..x + text.chars().count() as u16;
       cells.map(|x| (buf[(x, y as u16)].fg, buf[(x, y as u16)].modifier)).collect::<Vec<_>>()
     };
-    let (key, faint) = ((theme::KEY, Modifier::empty()), (theme::TEXT, Modifier::DIM));
-    let (bold, plain) = ((theme::TEXT, Modifier::BOLD), (theme::TEXT, Modifier::empty()));
+    let (key, faint) = ((theme::pal().key, Modifier::empty()), (theme::pal().text, Modifier::DIM));
+    let (bold, plain) = ((theme::pal().text, Modifier::BOLD), (theme::pal().text, Modifier::empty()));
 
     // keys cyan, the ` / ` between them faint, what they do plain
     assert_eq!(style("quit", "q"), [key]);

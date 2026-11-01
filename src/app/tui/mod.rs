@@ -587,6 +587,7 @@ impl App {
     let (mut term, _guard) = enter_term()?;
     run_inputs_thread(tx.clone());
     self.three_level_bars = theme::detect_three_level_bars();
+    theme::init();
 
     let mut mouse = false;
     loop {
@@ -1179,7 +1180,7 @@ mod tests {
     // the arrows in the border color, the thumb in the text color
     let buf = render_buffer(&mut app, 200, 50);
     let fg = |y: u16| buf[(199, PROC_Y + y)].fg;
-    assert_eq!([fg(2), fg(27), fg(28)], [theme::BORDER, theme::TEXT, theme::BORDER]);
+    assert_eq!([fg(2), fg(27), fg(28)], [theme::pal().border, theme::pal().text, theme::pal().border]);
 
     // the 11 rows of `proc9` fit: the plain border
     for c in "/proc9".chars() {
@@ -1529,9 +1530,9 @@ mod tests {
       let cell = &buf[(x_of(&wide, text), PROC_Y)];
       (cell.fg, cell.modifier)
     };
-    let (bold, plain) = ((theme::TEXT, Modifier::BOLD), (theme::TEXT, Modifier::empty()));
-    let (cyan, faint) = ((theme::KEY, Modifier::empty()), (theme::TEXT, Modifier::DIM));
-    let sep = (theme::DIM, Modifier::empty());
+    let (bold, plain) = ((theme::pal().text, Modifier::BOLD), (theme::pal().text, Modifier::empty()));
+    let (cyan, faint) = ((theme::pal().key, Modifier::empty()), (theme::pal().text, Modifier::DIM));
+    let sep = (theme::pal().dim, Modifier::empty());
     let cells = ["proc", " 3", "/ ", " filter", "sort", "ort", "info", "nfo", " | "];
     assert_eq!(cells.map(style), [bold, plain, cyan, faint, cyan, faint, cyan, faint, sep]);
     // `e` inside `finder`

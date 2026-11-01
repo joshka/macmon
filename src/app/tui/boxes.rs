@@ -190,11 +190,11 @@ pub(super) fn title_text_room(width: u16, titles: &[Line]) -> u16 {
 
 /// Draws a rounded box with `titles` on the top border. Returns the area inside the borders.
 pub(super) fn draw_box(f: &mut Frame, area: Rect, titles: Titles) -> Rect {
-  let block = Block::bordered().border_type(BorderType::Rounded).border_style(theme::BORDER);
+  let block = Block::bordered().border_type(BorderType::Rounded).border_style(theme::pal().border);
   let inner = block.inner(area);
   f.render_widget(block, area);
   // title text without a color of its own in the text color, not the border's
-  titles.render(area, f.buffer_mut(), Style::new().fg(theme::TEXT));
+  titles.render(area, f.buffer_mut(), Style::new().fg(theme::pal().text));
   inner
 }
 
@@ -202,7 +202,7 @@ pub(super) fn draw_box(f: &mut Frame, area: Rect, titles: Titles) -> Rect {
 /// both sides and a blank row under it. Returns the area for the graph.
 pub(super) fn draw_tile(f: &mut Frame, area: Rect, titles: Titles) -> Rect {
   let area = Rect { x: area.x + 1, width: area.width.saturating_sub(2), ..area };
-  titles.render_flush(area, f.buffer_mut(), Style::new().fg(theme::TEXT));
+  titles.render_flush(area, f.buffer_mut(), Style::new().fg(theme::pal().text));
   Rect { y: area.y + 1, height: area.height.saturating_sub(2), ..area }
 }
 
@@ -210,7 +210,7 @@ pub(super) fn draw_tile(f: &mut Frame, area: Rect, titles: Titles) -> Rect {
 /// Returns the area under the titles.
 pub(super) fn draw_section(f: &mut Frame, area: Rect, titles: Titles) -> Rect {
   let row = Rect { x: area.x + 1, width: area.width.saturating_sub(2), height: 1, ..area };
-  titles.render_flush(row, f.buffer_mut(), Style::new().fg(theme::TEXT));
+  titles.render_flush(row, f.buffer_mut(), Style::new().fg(theme::pal().text));
   Rect { y: area.y + 1, height: area.height.saturating_sub(1), ..area }
 }
 
@@ -218,8 +218,8 @@ pub(super) fn draw_section(f: &mut Frame, area: Rect, titles: Titles) -> Rect {
 /// as on the top border.
 pub(super) fn draw_divider(f: &mut Frame, area: Rect, y: u16, titles: Titles) {
   let line = format!("├{}┤", "─".repeat(usize::from(area.width.saturating_sub(2))));
-  f.buffer_mut().set_string(area.x, y, line, theme::BORDER);
-  titles.render(Rect { y, height: 1, ..area }, f.buffer_mut(), Style::new().fg(theme::TEXT));
+  f.buffer_mut().set_string(area.x, y, line, theme::pal().border);
+  titles.render(Rect { y, height: 1, ..area }, f.buffer_mut(), Style::new().fg(theme::pal().text));
 }
 
 /// Draws a scrollbar over the right border of box `area` beside `rows`, the cells of a list of
@@ -239,8 +239,8 @@ pub(super) fn draw_scrollbar(f: &mut Frame, area: Rect, rows: Rect, len: usize, 
     .end_symbol(Some("↓"))
     .track_symbol(None)
     .thumb_symbol("┃")
-    .style(theme::BORDER)
-    .thumb_style(theme::TEXT);
+    .style(theme::pal().border)
+    .thumb_style(theme::pal().text);
   f.render_stateful_widget(scrollbar, bar, &mut state);
 }
 
@@ -356,11 +356,11 @@ pub(super) fn render_bottom_border(
 /// The identity color of `metric`, shared by a unit and its power.
 fn metric_color(metric: Metric) -> ratatui::style::Color {
   match metric {
-    Metric::Cluster(_) | Metric::Cpu | Metric::CpuPower => theme::CPU,
-    Metric::Gpu | Metric::GpuPower => theme::GPU,
-    Metric::AnePower => theme::ANE,
-    Metric::Ram => theme::RAM,
-    Metric::TotalPower => theme::POWER,
+    Metric::Cluster(_) | Metric::Cpu | Metric::CpuPower => theme::pal().cpu,
+    Metric::Gpu | Metric::GpuPower => theme::pal().gpu,
+    Metric::AnePower => theme::pal().ane,
+    Metric::Ram => theme::pal().ram,
+    Metric::TotalPower => theme::pal().power,
   }
 }
 
@@ -445,7 +445,7 @@ impl App {
   /// Header bar: the app name as a tab, the chip, the version on the right.
   pub(super) fn render_header(&self, f: &mut Frame, area: Rect) {
     let version = format!("v{} ", env!("CARGO_PKG_VERSION"));
-    let tab = Span::styled(" macmon ", Style::new().fg(theme::KEY).add_modifier(ratatui::style::Modifier::REVERSED | ratatui::style::Modifier::BOLD));
+    let tab = Span::styled(" macmon ", Style::new().fg(theme::pal().key).add_modifier(ratatui::style::Modifier::REVERSED | ratatui::style::Modifier::BOLD));
     let mut spans = vec![tab, text(" ")];
     spans.extend(self.chip_title().spans);
     f.render_widget(Line::from(spans), area);
@@ -564,10 +564,10 @@ impl App {
       .collect();
     let data = [share(parts[0]), share(parts[1]), share(parts[2]), rest];
     let styles = [
-      Style::new().fg(theme::CPU),
-      Style::new().fg(theme::GPU),
-      Style::new().fg(theme::ANE),
-      Style::new().fg(theme::DIM),
+      Style::new().fg(theme::pal().cpu),
+      Style::new().fg(theme::pal().gpu),
+      Style::new().fg(theme::pal().ane),
+      Style::new().fg(theme::pal().dim),
     ];
     let layers = data.iter().zip(styles).map(|(d, s)| (d.as_slice(), s)).collect();
     f.render_widget(crate::tui::widgets::Stacked { layers }, area);
@@ -586,7 +586,7 @@ impl App {
       .iter()
       .enumerate()
       .map(|(i, data)| {
-        let style = Style::new().fg(theme::CPU);
+        let style = Style::new().fg(theme::pal().cpu);
         let style = if i < last { style.add_modifier(ratatui::style::Modifier::DIM) } else { style };
         (data.as_slice(), style)
       })
@@ -654,7 +654,7 @@ impl App {
   ) -> MetricBox<'a> {
     let watts = Span::styled(
       format!("{:.2}", store.top_value),
-      Style::new().fg(theme::TEXT).add_modifier(ratatui::style::Modifier::BOLD),
+      Style::new().fg(theme::pal().text).add_modifier(ratatui::style::Modifier::BOLD),
     );
     let short = vec![heading(label), text(" "), watts, dim("W")];
     let full = short.clone();
@@ -681,7 +681,7 @@ impl App {
     } else {
       self.power_box("Power", &self.all_power, None)
     };
-    let ane = [text("  "), Span::styled("ANE ", theme::ANE), text(format!("{:.2}", self.ane_power.top_value)), dim("W")];
+    let ane = [text("  "), Span::styled("ANE ", theme::pal().ane), text(format!("{:.2}", self.ane_power.top_value)), dim("W")];
     boxed.titles = boxed
       .titles
       .into_iter()
@@ -775,12 +775,14 @@ mod tests {
     }
   }
 
-  /// `spans` as text with the keys (`theme::KEY`, no modifier) in brackets and the faint text
+  /// `spans` as text with the keys (`theme::pal().key`, no modifier) in brackets and the faint text
   /// (default color, `Modifier::DIM`) plain; any other style panics.
   fn marked(spans: &[Span]) -> String {
     let mark = |span: &Span| match (span.style.fg, span.style.add_modifier) {
-      (Some(theme::KEY), modifier) if modifier.is_empty() => format!("[{}]", span.content),
-      (Some(theme::TEXT), Modifier::DIM) => span.content.to_string(),
+      (Some(c), modifier) if c == theme::pal().key && modifier.is_empty() => {
+        format!("[{}]", span.content)
+      }
+      (Some(c), Modifier::DIM) if c == theme::pal().text => span.content.to_string(),
       style => panic!("{:?} in {style:?}", span.content),
     };
     spans.iter().map(mark).collect()
@@ -828,10 +830,10 @@ mod tests {
     let buf = draw(60);
     let at = |x: u16| (buf[(x, 0)].fg, buf[(x, 0)].modifier);
     let cells_with = |style| (43..58).filter(|&x| at(x) == style).collect::<Vec<_>>();
-    assert_eq!(cells_with((theme::KEY, Modifier::empty())), [44, 53]);
-    assert_eq!(cells_with((theme::TEXT, Modifier::DIM)), [45, 46, 47, 48, 49, 54, 55, 56]);
-    assert_eq!(cells_with((theme::DIM, Modifier::empty())), [50, 51, 52]);
-    assert_eq!(theme::DIM, Color::DarkGray);
+    assert_eq!(cells_with((theme::pal().key, Modifier::empty())), [44, 53]);
+    assert_eq!(cells_with((theme::pal().text, Modifier::DIM)), [45, 46, 47, 48, 49, 54, 55, 56]);
+    assert_eq!(cells_with((theme::pal().dim, Modifier::empty())), [50, 51, 52]);
+    assert_eq!(theme::pal().dim, Color::DarkGray);
     assert!(buf.content.iter().all(|cell| Modifier::DIM.contains(cell.modifier)));
     // the text is cut with `…` in the room the hints leave, and left out with fewer than 8 cells
     assert_eq!(border(40), format!("___Power_6.60W_(6.60…__{help}__"));

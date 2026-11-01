@@ -376,7 +376,7 @@ pub(super) fn filter_title(filter: &str, typing: bool, room: u16) -> Vec<Span<'s
     spans.push(text(tail(filter, text_room.saturating_sub(1)).to_string()));
   }
   if typing {
-    spans.push(Span::styled(FILTER_CURSOR, theme::TEXT));
+    spans.push(Span::styled(FILTER_CURSOR, theme::pal().text));
   }
   spans
 }
@@ -881,10 +881,10 @@ impl App {
     let (sort, desc) = (self.proc_view.sort, self.proc_view.sort_desc);
     let header = columns.iter().map(|&(column, _)| {
       let color = match column {
-        ProcSort::Cpu => theme::CPU,
-        ProcSort::Gpu => theme::GPU,
-        ProcSort::Mem => theme::RAM,
-        _ => theme::TEXT,
+        ProcSort::Cpu => theme::pal().cpu,
+        ProcSort::Gpu => theme::pal().gpu,
+        ProcSort::Mem => theme::pal().ram,
+        _ => theme::pal().text,
       };
       let mut style = Style::new().fg(color).add_modifier(Modifier::BOLD);
       if column != sort {
@@ -894,7 +894,7 @@ impl App {
     });
     let header_row = Rect { height: 1, ..table };
     draw_row(buf, header_row, &columns, header);
-    buf.set_style(Rect { height: 1, ..inner }, theme::HEADER_ROW);
+    buf.set_style(Rect { height: 1, ..inner }, theme::pal().header_row);
 
     if groups_height > 0 {
       let bold = Style::new().add_modifier(Modifier::BOLD);
@@ -905,7 +905,7 @@ impl App {
         draw_row(buf, Rect { y, height: 1, ..table }, &columns, cells);
       }
       let line = "─".repeat(usize::from(table.width));
-      buf.set_string(table.x, body.y - 1, line, Style::new().fg(theme::BORDER));
+      buf.set_string(table.x, body.y - 1, line, Style::new().fg(theme::pal().border));
     }
 
     for (i, (selected, proc)) in self.proc_view.page_rows().enumerate() {
@@ -914,7 +914,7 @@ impl App {
       draw_row(buf, Rect { y, height: 1, ..table }, &columns, cells);
       // from border to border, so the row reads as one bar
       if selected {
-        buf.set_style(Rect { y, height: 1, ..inner }, theme::SELECTED);
+        buf.set_style(Rect { y, height: 1, ..inner }, theme::pal().selected);
       }
     }
 
@@ -962,7 +962,7 @@ fn load_cell(value: f64, ratio: f64, text: String) -> Span<'static> {
   match value {
     0.0 => dim(text),
     _ if ratio > 1.0 / 3.0 => Span::styled(text, gradient(ratio)),
-    _ => Span::styled(text, theme::TEXT),
+    _ => Span::styled(text, theme::pal().text),
   }
 }
 

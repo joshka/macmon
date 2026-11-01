@@ -323,7 +323,7 @@ impl Info {
       let line = Rect { y, height: 1, ..list };
       f.render_widget(Line::from(vec![side(columns), text(shown), side(count)]), line);
       if i == self.index {
-        f.buffer_mut().set_style(line, theme::SELECTED);
+        f.buffer_mut().set_style(line, theme::pal().selected);
       }
     }
     draw_scrollbar(f, area, list, len, self.offset);
@@ -713,7 +713,7 @@ mod tests {
       assert_eq!(shown[0], format!("╭─ WindowServer 631 {}╮", "─".repeat(19)));
       assert_eq!(shown[1], format!("├─ / filter {}┤", "─".repeat(27)));
       assert_eq!(shown[2], format!("│{text:38}│"));
-      assert_eq!((buf[(2, 2)].fg, buf[(2, 2)].modifier), (theme::TEXT, Modifier::DIM), "{text}");
+      assert_eq!((buf[(2, 2)].fg, buf[(2, 2)].modifier), (theme::pal().text, Modifier::DIM), "{text}");
       assert_eq!(shown[11], format!("╰{} ? | q back ─╯", "─".repeat(25)));
       // nothing to select or reveal
       for code in [KeyCode::Down, KeyCode::End, KeyCode::Char('e')] {
@@ -764,10 +764,10 @@ mod tests {
     assert_eq!(rows(&buf), overlay);
     // `×N` faint like the type and the mode, the paths plain, the exe selected
     let cell = |x: u16, y: u16| (buf[(x, y)].fg, buf[(x, y)].modifier);
-    let (plain, faint) = ((theme::TEXT, Modifier::empty()), (theme::TEXT, Modifier::DIM));
+    let (plain, faint) = ((theme::pal().text, Modifier::empty()), (theme::pal().text, Modifier::DIM));
     let x = overlay[8].chars().position(|c| c == '×').unwrap() as u16;
     assert_eq!([cell(2, 8), cell(8, 8), cell(12, 8), cell(x, 8)], [faint, faint, plain, faint]);
-    assert_eq!(cell(2, 3), (theme::TEXT, Modifier::REVERSED));
+    assert_eq!(cell(2, 3), (theme::pal().text, Modifier::REVERSED));
   }
 
   #[test]
@@ -817,9 +817,9 @@ mod tests {
     // the numbers plain, the labels faint, the divider in the border color
     let buf = render(&mut info, 40, 10);
     let cell = |x: u16, y: u16| (buf[(x, y)].fg, buf[(x, y)].modifier);
-    let (plain, faint) = ((theme::TEXT, Modifier::empty()), (theme::TEXT, Modifier::DIM));
+    let (plain, faint) = ((theme::pal().text, Modifier::empty()), (theme::pal().text, Modifier::DIM));
     assert_eq!([cell(2, 1), cell(5, 1), cell(10, 1), cell(12, 1)], [plain, faint, plain, faint]);
-    assert_eq!([cell(0, 2).0, cell(20, 2).0, cell(39, 2).0], [theme::BORDER; 3]);
+    assert_eq!([cell(0, 2).0, cell(20, 2).0, cell(39, 2).0], [theme::pal().border; 3]);
   }
 
   #[test]
@@ -850,12 +850,12 @@ mod tests {
     // the type and mode faint, the path in the default color, the selected row plain text
     // reversed from border to border, the key of the hint cyan, its label faint
     let cell = |x: u16, y: u16| (buf[(x, y)].fg, buf[(x, y)].modifier);
-    let (plain, faint) = ((theme::TEXT, Modifier::empty()), (theme::TEXT, Modifier::DIM));
+    let (plain, faint) = ((theme::pal().text, Modifier::empty()), (theme::pal().text, Modifier::DIM));
     assert_eq!([cell(2, 4), cell(8, 4), cell(12, 4)], [faint, faint, plain]);
-    assert_eq!([cell(1, 3), cell(2, 3), cell(58, 3)], [(theme::TEXT, Modifier::REVERSED); 3]);
+    assert_eq!([cell(1, 3), cell(2, 3), cell(58, 3)], [(theme::pal().text, Modifier::REVERSED); 3]);
     let x = |text| shown[0][..shown[0].find(text).unwrap()].chars().count() as u16;
-    let key = (theme::KEY, Modifier::empty());
-    assert_eq!((cell(0, 1).0, cell(3, 1), cell(5, 1)), (theme::BORDER, key, faint));
+    let key = (theme::pal().key, Modifier::empty());
+    assert_eq!((cell(0, 1).0, cell(3, 1), cell(5, 1)), (theme::pal().border, key, faint));
     let finder = x("finder");
     assert_eq!([0, 3, 4, 5].map(|dx| cell(finder + dx, 0)), [faint, faint, key, faint]);
     // `? | q back` on the bottom border as on the main footer
@@ -881,7 +881,7 @@ mod tests {
     assert_eq!(border(&mut info), "╮│┤↑││││┃┃↓╯");
     let buf = render(&mut info, 60, 12);
     let fg = |y: u16| buf[(59, y)].fg;
-    assert_eq!([fg(3), fg(8), fg(10)], [theme::BORDER, theme::TEXT, theme::BORDER]);
+    assert_eq!([fg(3), fg(8), fg(10)], [theme::pal().border, theme::pal().text, theme::pal().border]);
 
     // the 7 rows of `files()` fit
     let (mut info, _) = self::info(Ok(self::files()));

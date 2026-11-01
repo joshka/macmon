@@ -230,7 +230,7 @@ impl Kill {
       // selected: plain text in the reversed bar; others: dim brackets around a faint label, its
       // first letter a key when it is a shortcut (a button with a signal)
       let line = match (i == popup.selected, sig) {
-        (true, _) => Line::from(text(format!("[ {label} ]"))).style(theme::SELECTED),
+        (true, _) => Line::from(text(format!("[ {label} ]"))).style(theme::pal().selected),
         (false, Some(_)) => {
           let (first, rest) = label.split_at(1);
           Line::from(vec![dim("[ "), theme::key(first), faint(rest), dim(" ]")])
@@ -540,11 +540,11 @@ pub(super) mod tests {
       let cell = &buf[find(&shown, text)];
       (cell.fg, cell.modifier)
     };
-    let selected = (theme::TEXT, Modifier::REVERSED);
+    let selected = (theme::pal().text, Modifier::REVERSED);
     let (bracket, key, label) = (
-      (theme::DIM, Modifier::empty()),
-      (theme::KEY, Modifier::empty()),
-      (theme::TEXT, Modifier::DIM),
+      (theme::pal().dim, Modifier::empty()),
+      (theme::pal().key, Modifier::empty()),
+      (theme::pal().text, Modifier::DIM),
     );
     let terminate = ["[ Terminate", "Terminate", "erminate", "e ]", "]   [ Force"];
     assert_eq!(terminate.map(style), [selected; 5]);
@@ -553,8 +553,8 @@ pub(super) mod tests {
       [bracket, key, label, label, bracket, label, label, label]
     );
     let (x, y) = find(&shown, "[ Cancel ]");
-    assert!((x..x + 10).all(|x| buf[(x, y)].fg != theme::KEY), "a key in Cancel");
-    assert_eq!(buf[find(&shown, "…tents")].fg, theme::DIM);
+    assert!((x..x + 10).all(|x| buf[(x, y)].fg != theme::pal().key), "a key in Cancel");
+    assert_eq!(buf[find(&shown, "…tents")].fg, theme::pal().dim);
 
     // the name cut before `?`, without the blank rows when low
     let narrow = [
