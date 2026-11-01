@@ -415,6 +415,10 @@ pub(super) fn render_bottom_border(
 
 // MARK: Metric boxes
 
+/// Lowest full-height value of a power graph (CPU, GPU) and of the total power stack, in mW.
+const POWER_FLOOR_MW: u64 = 2_000;
+const TOTAL_FLOOR_MW: u64 = 5_000;
+
 /// The identity color of `metric`, shared by a unit and its power.
 fn metric_color(metric: Metric) -> ratatui::style::Color {
   match metric {
@@ -498,7 +502,12 @@ impl App {
           f.render_widget(Gauge::new(load), inner)
         }
         Scale::Load { max, .. } => f.render_widget(graph.max(max).color(metric_color(kind)), inner),
-        Scale::Power => f.render_widget(graph.color(metric_color(kind)), inner),
+        Scale::Power => {
+          // at least `POWER_FLOOR_MW`, so idle readings stay small instead of filling the tile
+          let visible = metric.data.iter().take(usize::from(inner.width)).copied().max();
+          let max = visible.unwrap_or(0).max(POWER_FLOOR_MW);
+          f.render_widget(graph.max(max).color(metric_color(kind)), inner)
+        }
       }
 
     }
@@ -620,7 +629,7 @@ impl App {
       let sum: u64 = parts.iter().map(|p| p.get(i).copied().unwrap_or(0)).sum();
       self.sys_power.items.get(i).copied().unwrap_or(0).max(sum)
     };
-    let max = (0..width).map(total).max().unwrap_or(0).max(1) as f64;
+    let max = (0..width).map(total).max().unwrap_or(0).max(TOTAL_FLOOR_MW) as f64;
     let share = |items: &[u64]| -> Vec<f64> {
       items.iter().take(width).map(|&mw| mw as f64 / max).collect()
     };
