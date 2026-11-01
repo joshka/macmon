@@ -22,7 +22,7 @@ use crate::config::{RatioMode, TUI_MAX_MS, ViewType};
 /// Bytes in a GiB, the unit of the RAM box title.
 const GIB: f64 = (1u64 << 30) as f64;
 /// Between the key hints on a bottom border.
-const SEPARATOR: &str = " | ";
+const SEPARATOR: &str = "   ";
 /// Fewest cells worth a text on the left of a bottom border; with less room it is left out.
 const BORDER_TEXT_MIN: u16 = 8;
 
