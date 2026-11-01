@@ -909,8 +909,11 @@ impl App {
           columns.iter().map(|&(column, _)| self.group_cell(column, group).patch_style(bold));
         draw_row(buf, Rect { y, height: 1, ..table }, &columns, cells);
       }
-      let line = "─".repeat(usize::from(table.width));
-      buf.set_string(table.x, body.y - 1, line, Style::new().fg(theme::pal().border));
+      // the totals stand apart by weight (and a band in RGB) and the blank row under them, no rule
+      if theme::pal().rgb {
+        let totals = Rect { y: below_header.y, height: groups_height - 1, ..inner };
+        buf.set_style(totals, Style::new().bg(theme::pal().raised_band));
+      }
     }
 
     for (i, (selected, proc)) in self.proc_view.page_rows().enumerate() {
