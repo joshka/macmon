@@ -137,8 +137,13 @@ pub(super) fn text<'a>(text: impl Into<Cow<'a, str>>) -> Span<'a> {
   Span::styled(text, pal().text)
 }
 
+/// Secondary text. In ANSI the default color, faint (SGR 2), which fades toward the background
+/// in light and dark themes alike; ANSI 8 is nearly as dark as the text in many light themes.
 pub(super) fn dim<'a>(text: impl Into<Cow<'a, str>>) -> Span<'a> {
-  Span::styled(text, pal().dim)
+  match pal().rgb {
+    true => Span::styled(text, pal().dim),
+    false => Span::styled(text, Style::new().fg(pal().text).add_modifier(Modifier::DIM)),
+  }
 }
 
 /// The key to press in a hint or a button: `KEY`, no modifier.
