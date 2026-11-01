@@ -91,12 +91,17 @@ impl<'a> Titles<'a> {
   }
 
   /// Draws the titles flush on row `area.y`: the left ones from `area.x`, two cells apart, the right
-  /// one against the right edge when it doesn't overlap them.
+  /// one against the right edge when it doesn't overlap them. Only the first left title is cut.
   fn render_flush(self, area: Rect, buf: &mut Buffer, style: Style) {
     let mut x = area.x;
-    for line in self.left {
+    for (i, line) in self.left.into_iter().enumerate() {
       let line = line.patch_style(style);
       let room = area.right().saturating_sub(x);
+      // only the first title is cut; a later one that doesn't fit is left out whole, so no
+      // number is ever cut
+      if i > 0 && width_u16(&line) > room {
+        break;
+      }
       let (end, _) = buf.set_line(x, area.y, &line, room);
       x = end + 2;
     }
