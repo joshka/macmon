@@ -223,6 +223,15 @@ pub(super) fn draw_tile(f: &mut Frame, area: Rect, titles: Titles) -> Rect {
 /// Draws a section without borders: `titles` flush on its first row, one column in from the left.
 /// Returns the area under the titles.
 pub(super) fn draw_section(f: &mut Frame, area: Rect, titles: Titles) -> Rect {
+  let pal = theme::pal();
+  if pal.rgb {
+    // a surface panel aligned with the tiles above
+    let panel = Rect { x: area.x + 1, width: area.width.saturating_sub(2), ..area };
+    f.buffer_mut().set_style(panel, Style::new().bg(pal.surface));
+    let row = Rect { x: panel.x + 1, width: panel.width.saturating_sub(2), height: 1, ..panel };
+    titles.render_flush(row, f.buffer_mut(), Style::new().fg(pal.text));
+    return Rect { y: panel.y + 1, height: panel.height.saturating_sub(1), ..panel };
+  }
   let row = Rect { x: area.x + 1, width: area.width.saturating_sub(2), height: 1, ..area };
   titles.render_flush(row, f.buffer_mut(), Style::new().fg(theme::pal().text));
   Rect { y: area.y + 1, height: area.height.saturating_sub(1), ..area }
@@ -458,6 +467,9 @@ impl App {
 
   /// Header bar: the app name as a tab, the chip, the version on the right.
   pub(super) fn render_header(&self, f: &mut Frame, area: Rect) {
+    if theme::pal().rgb {
+      f.buffer_mut().set_style(area, Style::new().bg(theme::pal().surface_alt));
+    }
     let version = format!("v{} ", env!("CARGO_PKG_VERSION"));
     let tab = Span::styled(" macmon ", Style::new().fg(theme::pal().key).add_modifier(ratatui::style::Modifier::REVERSED | ratatui::style::Modifier::BOLD));
     let mut spans = vec![tab, text(" ")];
@@ -468,6 +480,9 @@ impl App {
 
   /// Footer bar: the process list's note on the left, the key hints on the right.
   pub(super) fn render_footer(&self, f: &mut Frame, area: Rect) {
+    if theme::pal().rgb {
+      f.buffer_mut().set_style(area, Style::new().bg(theme::pal().surface_alt));
+    }
     let hints = Line::from(join(self.footer_hints())).right_aligned();
     let room = usize::from(area.width).saturating_sub(hints.width() + 2);
     let note = if self.cfg.show_procs { self.proc_view.border_text(true) } else { vec![] };

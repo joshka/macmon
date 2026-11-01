@@ -911,6 +911,9 @@ impl App {
     for (i, (selected, proc)) in self.proc_view.page_rows().enumerate() {
       let y = body.y + i as u16;
       let cells = columns.iter().map(|&(column, _)| self.proc_cell(column, proc));
+      if theme::pal().rgb && i % 2 == 1 {
+        buf.set_style(Rect { y, height: 1, ..inner }, Style::new().bg(theme::pal().surface_alt));
+      }
       draw_row(buf, Rect { y, height: 1, ..table }, &columns, cells);
       // from border to border, so the row reads as one bar
       if selected {
