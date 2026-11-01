@@ -203,6 +203,10 @@ impl FanStore {
     if self.items.is_empty() {
       return String::new();
     }
+    // stopped fans (common at low load) read as such, not as `0/0 rpm`
+    if self.items.iter().all(|fan| fan.rpm == 0) {
+      return "fans off".to_string();
+    }
     let rpms: Vec<String> = self.items.iter().map(|fan| fan.rpm.to_string()).collect();
     format!("{} rpm", rpms.join("/"))
   }
