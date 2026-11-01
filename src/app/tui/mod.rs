@@ -1,6 +1,7 @@
 //! Terminal user interface.
 
 mod boxes;
+mod demo;
 mod help;
 mod info;
 mod kill;
@@ -184,6 +185,19 @@ fn run_sampler_thread(tx: mpsc::Sender<Event>, msec: Arc<RwLock<u32>>) {
   });
 }
 
+/// Sends `demo::metrics` once per interval, continuing after the prefilled history.
+fn run_demo_thread(tx: mpsc::Sender<Event>, msec: Arc<RwLock<u32>>) {
+  thread::spawn(move || {
+    for t in demo::HISTORY.. {
+      if tx.send(Event::Update(Box::new(demo::metrics(t)))).is_err() {
+        return;
+      }
+      let interval = (*msec.read().unwrap()).max(TUI_MIN_MS);
+      thread::sleep(Duration::from_millis(interval.into()));
+    }
+  });
+}
+
 /// Whether the process panel is on screen, shared with the process thread, which samples only
 /// while it is. Every change wakes the thread, and every show starts a new showing, so the thread
 /// also notices a hide when the panel is back before it gets to look.
@@ -316,6 +330,12 @@ pub struct App {
 
 impl App {
   pub fn new() -> WithError<Self> {
+    if demo::enabled() {
+      let mut app = Self::from_parts(demo::soc(), Config::load());
+      app.kill.sys = Box::new(demo::DemoSys);
+      (0..demo::HISTORY).for_each(|t| app.update_metrics(demo::metrics(t)));
+      return Ok(app);
+    }
     Ok(Self::from_parts(SocInfo::new()?, Config::load()))
   }
 
@@ -546,8 +566,13 @@ impl App {
     let msec = Arc::new(RwLock::new(self.cfg.interval()));
 
     let (tx, rx) = mpsc::channel::<Event>();
-    run_sampler_thread(tx.clone(), msec.clone());
-    run_procs_thread(tx.clone(), msec.clone(), self.procs_shown.clone(), proc_sampler);
+    if demo::enabled() {
+      run_demo_thread(tx.clone(), msec.clone());
+      run_procs_thread(tx.clone(), msec.clone(), self.procs_shown.clone(), demo::proc_sampler);
+    } else {
+      run_sampler_thread(tx.clone(), msec.clone());
+      run_procs_thread(tx.clone(), msec.clone(), self.procs_shown.clone(), proc_sampler);
+    }
 
     // the guard restores the terminal on every way out of here, `?` included
     let (mut term, _guard) = enter_term()?;
