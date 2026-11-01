@@ -9,6 +9,7 @@ use std::process::{self, Command, Stdio};
 use ratatui::Frame;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, MouseButton, MouseEvent, MouseEventKind};
 use ratatui::layout::{Constraint, Margin, Position, Rect};
+use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Text};
 use ratatui::widgets::Clear;
 
@@ -229,7 +230,21 @@ impl Kill {
     for (i, &(label, sig)) in buttons.iter().enumerate() {
       // selected: plain text in the reversed bar; others: dim brackets around a faint label, its
       // first letter a key when it is a shortcut (a button with a signal)
+      let pal = theme::pal();
       let line = match (i == popup.selected, sig) {
+        // in RGB, filled chips instead of brackets
+        (true, _) if pal.rgb => {
+          let style = Style::new().fg(pal.bg).bg(pal.key).add_modifier(Modifier::BOLD);
+          Line::from(format!("  {label}  ")).style(style)
+        }
+        (false, Some(_)) if pal.rgb => {
+          let (first, rest) = label.split_at(1);
+          let line = vec![text("  "), theme::key(first), text(format!("{rest}  "))];
+          Line::from(line).style(Style::new().bg(pal.raised_band))
+        }
+        (false, None) if pal.rgb => {
+          Line::from(text(format!("  {label}  "))).style(Style::new().bg(pal.raised_band))
+        }
         (true, _) => Line::from(text(format!("[ {label} ]"))).style(theme::pal().selected),
         (false, Some(_)) => {
           let (first, rest) = label.split_at(1);
