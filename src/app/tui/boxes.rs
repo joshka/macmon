@@ -753,13 +753,14 @@ impl App {
   fn freq_box<'a>(&self, label: String, freq: &'a FreqStore) -> MetricBox<'a> {
     let series = freq.ratio(self.cfg.ratio_mode);
     let short = vec![heading(label), text(" "), self.percent(series.ratio, 0)];
-    let mut full = short.clone();
+    // the frequency dim on the right, as the CPU tile has it; it drops first when narrow
+    let mut full = Titles::new(short.clone());
     if freq.freq_mhz > 0 {
-      full.push(text(format!(" @ {} MHz", freq.freq_mhz)));
+      full = full.right(dim(format!("{} MHz", freq.freq_mhz)));
     }
 
     MetricBox {
-      titles: vec![Titles::new(full), Titles::new(short)],
+      titles: vec![full, Titles::new(short)],
       data: &series.items,
       scale: Scale::Load { max: 100, load: series.ratio },
     }
