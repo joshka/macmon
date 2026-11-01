@@ -14,7 +14,7 @@ use ratatui::text::{Line, Span};
 
 use super::App;
 use super::boxes::{
-  Titles, draw_box, draw_scrollbar, hint, join, title_text_room,
+  Titles, draw_scrollbar, draw_section, hint, join, title_text_room,
 };
 use super::store::ratio;
 use super::theme::{self, dim, faint, gradient, heading, text};
@@ -834,7 +834,7 @@ impl App {
   /// the process rows with a scrollbar when they don't fit, and the POWER note and the key hints
   /// on the bottom border. Keeps the cells that react to the mouse for `ProcView::handle_mouse`.
   pub(super) fn render_proc_box(&mut self, f: &mut Frame, area: Rect) {
-    let inner = draw_box(f, area, self.proc_view.titles(area.width));
+    let inner = draw_section(f, area, self.proc_view.titles(area.width));
     let (headers, body) = self.render_proc_table(f, inner);
     let power_shown = headers.iter().any(|&(column, _)| column == ProcSort::Power);
     self.proc_view.targets = Targets { area, headers, body };
@@ -867,7 +867,7 @@ impl App {
     };
     self.proc_view.fit(body.height as usize);
     // one blank cell between the columns and each border, as in the metrics box
-    let table = Rect { x: inner.x + 1, width: inner.width.saturating_sub(2), ..inner };
+    let table = Rect { x: inner.x + 1, width: inner.width.saturating_sub(3), ..inner };
     let columns = fit_columns(table.width, self.proc_view.sort);
 
     let filter = self.proc_view.filter();
@@ -885,7 +885,9 @@ impl App {
       Span::styled(column.header_text(sort, desc), style)
     });
     let header_row = Rect { height: 1, ..table };
+    buf.set_style(Rect { height: 1, ..inner }, theme::BAND);
     draw_row(buf, header_row, &columns, header);
+    buf.set_style(Rect { height: 1, ..inner }, theme::BAND);
 
     if groups_height > 0 {
       let bold = Style::new().add_modifier(Modifier::BOLD);

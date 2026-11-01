@@ -206,6 +206,14 @@ pub(super) fn draw_tile(f: &mut Frame, area: Rect, titles: Titles) -> Rect {
   Rect { y: area.y + 1, height: area.height.saturating_sub(2), ..area }
 }
 
+/// Draws a section without borders: `titles` flush on its first row, one column in from the left.
+/// Returns the area under the titles.
+pub(super) fn draw_section(f: &mut Frame, area: Rect, titles: Titles) -> Rect {
+  let row = Rect { x: area.x + 1, width: area.width.saturating_sub(2), height: 1, ..area };
+  titles.render_flush(row, f.buffer_mut(), Style::new().fg(theme::TEXT));
+  Rect { y: area.y + 1, height: area.height.saturating_sub(1), ..area }
+}
+
 /// Draws a divider across box `area` at row `y`, `├──┤` in the border color, with `titles` on it
 /// as on the top border.
 pub(super) fn draw_divider(f: &mut Frame, area: Rect, y: u16, titles: Titles) {
