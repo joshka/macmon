@@ -28,12 +28,19 @@ const HALF: char = '▄';
 /// (rounded to whole cells) in the load color of `ratio`; the rest stays blank.
 pub(super) struct Gauge {
   ratio: f64,
+  color: Option<Color>,
 }
 
 impl Gauge {
   /// Gauge for `ratio` in `0.0..=1.0`, clamped outside the range.
   pub(super) fn new(ratio: f64) -> Self {
-    Self { ratio: if ratio.is_nan() { 0.0 } else { ratio.clamp(0.0, 1.0) } }
+    Self { ratio: if ratio.is_nan() { 0.0 } else { ratio.clamp(0.0, 1.0) }, color: None }
+  }
+
+  /// Fills in `color` instead of the load color of the ratio.
+  pub(super) fn color(mut self, color: Color) -> Self {
+    self.color = Some(color);
+    self
   }
 }
 
@@ -42,10 +49,17 @@ impl Widget for Gauge {
     let area = area.intersection(buf.area);
     // at most `area.width`, as the ratio is at most 1
     let filled = (f64::from(area.width) * self.ratio).round() as u16;
-    let color = gradient(self.ratio);
+    let color = self.color.unwrap_or_else(|| gradient(self.ratio));
+    let pal = super::theme::pal();
     for y in area.top()..area.bottom() {
       for x in area.left()..area.left() + filled {
         buf[(x, y)].set_char(FULL).set_fg(color);
+      }
+      // in RGB the rest is a track, so the gauge shows its scale
+      if pal.rgb {
+        for x in area.left() + filled..area.right() {
+          buf[(x, y)].set_bg(pal.surface_alt);
+        }
       }
     }
   }

@@ -525,6 +525,11 @@ impl App {
       let titles = titles.tint_heading(metric_color(kind));
       let inner = draw_tile(f, r, titles);
       if kind == Metric::Cpu {
+        if self.cfg.view_type == ViewType::Gauge {
+          let load = self.cluster_shares().iter().map(|(w, _, r)| w * r).sum();
+          f.render_widget(Gauge::new(load).color(theme::pal().cpu), inner);
+          continue;
+        }
         self.render_cpu_stack(f, inner);
         continue;
       }
@@ -541,7 +546,7 @@ impl App {
       let graph = Graph::new(metric.data).three_levels(self.three_level_bars);
       match metric.scale {
         Scale::Load { load, .. } if self.cfg.view_type == ViewType::Gauge => {
-          f.render_widget(Gauge::new(load), inner)
+          f.render_widget(Gauge::new(load).color(metric_color(kind)), inner)
         }
         Scale::Load { max, .. } => f.render_widget(graph.max(max).color(metric_color(kind)), inner),
         Scale::Power => {
