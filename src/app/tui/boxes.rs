@@ -311,6 +311,17 @@ pub(super) fn render_bottom_border(
 
 // MARK: Metric boxes
 
+/// The identity color of `metric`, shared by a unit and its power.
+fn metric_color(metric: Metric) -> ratatui::style::Color {
+  match metric {
+    Metric::Cluster(_) | Metric::CpuPower => theme::CPU,
+    Metric::Gpu | Metric::GpuPower => theme::GPU,
+    Metric::AnePower => theme::ANE,
+    Metric::Ram => theme::RAM,
+    Metric::TotalPower => theme::POWER,
+  }
+}
+
 /// How a metric box draws its history.
 enum Scale {
   /// A load (CPU cluster, GPU, RAM): the graph is scaled to `max` and colored by load, and `v`
@@ -374,8 +385,8 @@ impl App {
         Scale::Load { load, .. } if self.cfg.view_type == ViewType::Gauge => {
           f.render_widget(Gauge::new(load), inner)
         }
-        Scale::Load { max, .. } => f.render_widget(graph.max(max), inner),
-        Scale::Power => f.render_widget(graph.color(gradient(0.0)), inner),
+        Scale::Load { max, .. } => f.render_widget(graph.max(max).color(metric_color(kind)), inner),
+        Scale::Power => f.render_widget(graph.color(metric_color(kind)), inner),
       }
 
       // the fans (`1200 rpm`) right on the bottom border of the total power box

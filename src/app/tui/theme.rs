@@ -19,6 +19,13 @@ pub(super) const KEY: Color = Color::Cyan;
 /// instead of reversing each load color in it.
 pub(super) const SELECTED: Style = Style::new().fg(TEXT).add_modifier(Modifier::REVERSED);
 
+/// Metric identity colors: a metric and its power share one, so the rows read as columns.
+pub(super) const CPU: Color = Color::Green;
+pub(super) const GPU: Color = Color::Magenta;
+pub(super) const ANE: Color = Color::Yellow;
+pub(super) const RAM: Color = Color::Blue;
+pub(super) const POWER: Color = Color::Reset;
+
 /// Steps of the load gradient: green up to `GREEN_MAX`, yellow up to `YELLOW_MAX`, red above.
 const GREEN_MAX: f64 = 1.0 / 3.0;
 const YELLOW_MAX: f64 = 2.0 / 3.0;
