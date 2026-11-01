@@ -26,8 +26,9 @@ pub(super) const ANE: Color = Color::Yellow;
 pub(super) const RAM: Color = Color::Blue;
 pub(super) const POWER: Color = Color::Reset;
 
-/// Background of a shaded band (the table header): bright black (ANSI 8).
-pub(super) const BAND_BG: Color = Color::DarkGray;
+/// The table header row: underlined edge to edge, which reads in light and dark themes alike
+/// (a background of ANSI 8 hides ANSI 8 text, and is dark in light themes).
+pub(super) const HEADER_ROW: Style = Style::new().add_modifier(Modifier::UNDERLINED);
 
 /// Steps of the load gradient: green up to `GREEN_MAX`, yellow up to `YELLOW_MAX`, red above.
 const GREEN_MAX: f64 = 1.0 / 3.0;

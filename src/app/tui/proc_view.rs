@@ -886,15 +886,15 @@ impl App {
         ProcSort::Mem => theme::RAM,
         _ => theme::TEXT,
       };
-      let mut style = Style::new().fg(color).bg(theme::BAND_BG).add_modifier(Modifier::BOLD);
-      if column == sort {
-        style = style.add_modifier(Modifier::UNDERLINED);
+      let mut style = Style::new().fg(color).add_modifier(Modifier::BOLD);
+      if column != sort {
+        style = style.add_modifier(Modifier::DIM);
       }
       Span::styled(column.header_text(sort, desc), style)
     });
     let header_row = Rect { height: 1, ..table };
-    buf.set_style(Rect { height: 1, ..inner }, Style::new().bg(theme::BAND_BG));
     draw_row(buf, header_row, &columns, header);
+    buf.set_style(Rect { height: 1, ..inner }, theme::HEADER_ROW);
 
     if groups_height > 0 {
       let bold = Style::new().add_modifier(Modifier::BOLD);
