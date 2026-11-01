@@ -26,9 +26,8 @@ pub(super) const ANE: Color = Color::Yellow;
 pub(super) const RAM: Color = Color::Blue;
 pub(super) const POWER: Color = Color::Reset;
 
-/// A shaded band (table header): bright black reversed, so it is a tone of the terminal's own
-/// palette in any theme.
-pub(super) const BAND: Style = Style::new().fg(Color::DarkGray).add_modifier(Modifier::REVERSED);
+/// Background of a shaded band (the table header): bright black (ANSI 8).
+pub(super) const BAND_BG: Color = Color::DarkGray;
 
 /// Steps of the load gradient: green up to `GREEN_MAX`, yellow up to `YELLOW_MAX`, red above.
 const GREEN_MAX: f64 = 1.0 / 3.0;

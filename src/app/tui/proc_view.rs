@@ -880,14 +880,21 @@ impl App {
 
     let (sort, desc) = (self.proc_view.sort, self.proc_view.sort_desc);
     let header = columns.iter().map(|&(column, _)| {
-      let color = if column == sort { theme::TEXT } else { theme::DIM };
-      let style = Style::new().fg(color).add_modifier(Modifier::BOLD);
+      let color = match column {
+        ProcSort::Cpu => theme::CPU,
+        ProcSort::Gpu => theme::GPU,
+        ProcSort::Mem => theme::RAM,
+        _ => theme::TEXT,
+      };
+      let mut style = Style::new().fg(color).bg(theme::BAND_BG).add_modifier(Modifier::BOLD);
+      if column == sort {
+        style = style.add_modifier(Modifier::UNDERLINED);
+      }
       Span::styled(column.header_text(sort, desc), style)
     });
     let header_row = Rect { height: 1, ..table };
-    buf.set_style(Rect { height: 1, ..inner }, theme::BAND);
+    buf.set_style(Rect { height: 1, ..inner }, Style::new().bg(theme::BAND_BG));
     draw_row(buf, header_row, &columns, header);
-    buf.set_style(Rect { height: 1, ..inner }, theme::BAND);
 
     if groups_height > 0 {
       let bold = Style::new().add_modifier(Modifier::BOLD);
@@ -918,11 +925,11 @@ impl App {
   /// values show as a dim `-`.
   fn proc_cell(&self, column: ProcSort, proc: &ProcInfo) -> Span<'static> {
     match column {
-      ProcSort::Pid => text(proc.pid.to_string()),
+      ProcSort::Pid => dim(proc.pid.to_string()),
       ProcSort::Name => text(proc.name.clone()),
-      ProcSort::User => text(proc.user.clone()),
+      ProcSort::User => dim(proc.user.clone()),
       ProcSort::Cpu => pct_cell(proc.cpu_pct),
-      ProcSort::Time => time_cell(proc.cpu_time_ns),
+      ProcSort::Time => dim(format_time(proc.cpu_time_ns)),
       ProcSort::Mem => self.mem_cell(proc.mem_bytes),
       ProcSort::Power => power_cell(proc.power_w, false),
       ProcSort::Gpu => pct_cell(proc.gpu_pct),
@@ -952,7 +959,11 @@ impl App {
 
 /// A load value colored by the gradient at `ratio`; zero is dim.
 fn load_cell(value: f64, ratio: f64, text: String) -> Span<'static> {
-  if value > 0.0 { Span::styled(text, gradient(ratio)) } else { dim(text) }
+  match value {
+    0.0 => dim(text),
+    _ if ratio > 1.0 / 3.0 => Span::styled(text, gradient(ratio)),
+    _ => Span::styled(text, theme::TEXT),
+  }
 }
 
 /// CPU% or GPU%: 100 is one full core or the whole GPU.
