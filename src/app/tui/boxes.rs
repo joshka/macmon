@@ -565,7 +565,11 @@ impl App {
     store: &'a PowerStore,
     temp: Option<f32>,
   ) -> MetricBox<'a> {
-    let short = vec![heading(label), text(format!(" {:.2}W", store.top_value))];
+    let watts = Span::styled(
+      format!("{:.2}", store.top_value),
+      Style::new().fg(theme::TEXT).add_modifier(ratatui::style::Modifier::BOLD),
+    );
+    let short = vec![heading(label), text(" "), watts, dim("W")];
     let mut full = short.clone();
     full.push(dim(format!(" ({:.2}, {:.2})", store.avg_value, store.max_value)));
 
