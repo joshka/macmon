@@ -429,6 +429,26 @@ fn tier_style(lower: bool) -> Style {
   }
 }
 
+/// A one-row meter filled to `ratio` in eighths of a cell, over a track: a darker band in RGB,
+/// dim dots in ANSI.
+fn meter(buf: &mut ratatui::buffer::Buffer, area: Rect, ratio: f64, color: ratatui::style::Color) {
+  let pal = theme::pal();
+  let ratio = if ratio.is_nan() { 0.0 } else { ratio.clamp(0.0, 1.0) };
+  let eighths = (ratio * f64::from(area.width) * 8.0).round() as u16;
+  for (i, x) in (area.left()..area.right()).enumerate() {
+    let filled = eighths.saturating_sub(i as u16 * 8).min(8);
+    let cell = &mut buf[(x, area.y)];
+    if pal.rgb {
+      cell.set_bg(pal.surface_alt);
+    }
+    match filled {
+      0 => cell.set_char(' '),
+      // left eighths: ▏ (1) … ▉ (7), █ (8)
+      n => cell.set_char(char::from_u32(0x2590 - u32::from(n)).unwrap_or('█')).set_fg(color),
+    };
+  }
+}
+
 /// The identity color of `metric`, shared by a unit and its power.
 fn metric_color(metric: Metric) -> ratatui::style::Color {
   match metric {
@@ -496,10 +516,22 @@ impl App {
 
     for &(kind, r) in &plan.boxes {
       let metric = self.metric_box(kind);
-      let titles = fit_titles(r.width.saturating_sub(2), metric.titles).tint_heading(metric_color(kind));
+      // with the meters (a tall enough RAM tile) the title only names it: the meters say the rest
+      let meters = kind == Metric::Ram && r.height >= 8 && self.cfg.view_type != ViewType::Gauge;
+      let titles = match meters {
+        true => Titles::new(heading("Memory")),
+        false => fit_titles(r.width.saturating_sub(2), metric.titles),
+      };
+      let titles = titles.tint_heading(metric_color(kind));
       let inner = draw_tile(f, r, titles);
       if kind == Metric::Cpu {
         self.render_cpu_stack(f, inner);
+        continue;
+      }
+      if meters {
+        let rest = self.render_memory_meters(f, inner);
+        let graph = Graph::new(&self.mem.items).three_levels(self.three_level_bars);
+        f.render_widget(graph.max(self.mem.ram_total).color(theme::pal().ram), rest);
         continue;
       }
       if kind == Metric::TotalPower {
@@ -631,6 +663,28 @@ impl App {
       titles[0] = std::mem::take(&mut titles[0]).right(dim(format!("{} MHz", top.freq.freq_mhz)));
     }
     MetricBox { titles, data: &[], scale: Scale::Load { max: 100, load } }
+  }
+
+  /// RAM and swap meters (`RAM ████████░░░ 30.9 / 48.0 GB`) on the first two rows of `area`, a
+  /// blank row under them; returns the rows left for the history.
+  fn render_memory_meters(&self, f: &mut Frame, area: Rect) -> Rect {
+    let mem = &self.mem;
+    let pal = theme::pal();
+    let rows = [
+      ("RAM", mem.ram_usage, mem.ram_total, pal.ram),
+      ("SWAP", mem.swap_usage, mem.swap_total, theme::mix(pal.ram, pal.dim, 0.5)),
+    ];
+    for (i, (label, used, total, color)) in rows.into_iter().enumerate() {
+      let row = Rect { y: area.y + i as u16, height: 1, ..area };
+      let value = format!(" {:.1} / {:.1} GB", used as f64 / GIB, total as f64 / GIB);
+      let value_width = cells(value.len());
+      let bar = Rect { x: row.x + 5, width: row.width.saturating_sub(5 + value_width), ..row };
+      let buf = f.buffer_mut();
+      buf.set_string(row.x, row.y, label, Style::new().fg(pal.text));
+      buf.set_string(bar.right(), row.y, &value, Style::new().fg(pal.text));
+      meter(buf, bar, ratio(used as f64, total as f64), color);
+    }
+    Rect { y: area.y + 3, height: area.height.saturating_sub(3), ..area }
   }
 
   /// System power stacked by source: CPU, GPU and ANE in their colors, the rest of the system dim
