@@ -426,6 +426,10 @@ impl App {
         self.render_cpu_stack(f, inner);
         continue;
       }
+      if kind == Metric::TotalPower {
+        self.render_power_stack(f, inner);
+        continue;
+      }
       let graph = Graph::new(metric.data).three_levels(self.three_level_bars);
       match metric.scale {
         Scale::Load { load, .. } if self.cfg.view_type == ViewType::Gauge => {
@@ -539,6 +543,36 @@ impl App {
     MetricBox { titles, data: &[], scale: Scale::Load { max: 100, load } }
   }
 
+  /// System power stacked by source: CPU, GPU and ANE in their colors, the rest of the system dim
+  /// on top, scaled to the largest visible total.
+  fn render_power_stack(&self, f: &mut Frame, area: Rect) {
+    let width = usize::from(area.width);
+    let parts = [&self.cpu_power.items, &self.gpu_power.items, &self.ane_power.items];
+    let total = |i: usize| {
+      let sum: u64 = parts.iter().map(|p| p.get(i).copied().unwrap_or(0)).sum();
+      self.sys_power.items.get(i).copied().unwrap_or(0).max(sum)
+    };
+    let max = (0..width).map(total).max().unwrap_or(0).max(1) as f64;
+    let share = |items: &[u64]| -> Vec<f64> {
+      items.iter().take(width).map(|&mw| mw as f64 / max).collect()
+    };
+    let rest: Vec<f64> = (0..width.min(self.sys_power.items.len()))
+      .map(|i| {
+        let sum: u64 = parts.iter().map(|p| p.get(i).copied().unwrap_or(0)).sum();
+        total(i).saturating_sub(sum) as f64 / max
+      })
+      .collect();
+    let data = [share(parts[0]), share(parts[1]), share(parts[2]), rest];
+    let styles = [
+      Style::new().fg(theme::CPU),
+      Style::new().fg(theme::GPU),
+      Style::new().fg(theme::ANE),
+      Style::new().fg(theme::DIM),
+    ];
+    let layers = data.iter().zip(styles).map(|(d, s)| (d.as_slice(), s)).collect();
+    f.render_widget(crate::tui::widgets::Stacked { layers }, area);
+  }
+
   /// The CPU clusters stacked in `area`, lower tiers dim.
   fn render_cpu_stack(&self, f: &mut Frame, area: Rect) {
     let shares = self.cluster_shares();
@@ -623,8 +657,7 @@ impl App {
       Style::new().fg(theme::TEXT).add_modifier(ratatui::style::Modifier::BOLD),
     );
     let short = vec![heading(label), text(" "), watts, dim("W")];
-    let mut full = short.clone();
-    full.push(dim(format!(" ({:.2}, {:.2})", store.avg_value, store.max_value)));
+    let full = short.clone();
 
     let titles = [full, short].map(|left| {
       let titles = Titles::new(left);
@@ -648,6 +681,13 @@ impl App {
     } else {
       self.power_box("Power", &self.all_power, None)
     };
+    let ane = [text("  "), Span::styled("ANE ", theme::ANE), text(format!("{:.2}", self.ane_power.top_value)), dim("W")];
+    boxed.titles = boxed
+      .titles
+      .into_iter()
+      .enumerate()
+      .map(|(_, t)| t.left(Line::from(ane.to_vec())))
+      .collect();
     let fans = self.fans.label();
     if !fans.is_empty() {
       boxed.titles = boxed.titles.into_iter().map(|t| t.right(dim(fans.clone()))).collect();

@@ -56,9 +56,8 @@ fn top_row(clusters: usize) -> Vec<Metric> {
   boxes
 }
 
-/// Boxes of the bottom row: CPU, GPU, ANE and total power.
-const BOTTOM_ROW: [Metric; 4] =
-  [Metric::CpuPower, Metric::GpuPower, Metric::AnePower, Metric::TotalPower];
+/// Boxes of the bottom row: CPU, GPU and total power (with ANE in it).
+const BOTTOM_ROW: [Metric; 3] = [Metric::CpuPower, Metric::GpuPower, Metric::TotalPower];
 
 /// Height of the metrics box over the process list on a screen `height` rows tall:
 /// `METRICS_HEIGHT_PCT` of it, rounded, but at least `METRICS_MIN_HEIGHT`.

@@ -218,8 +218,8 @@ mod tests {
 }
 
 /// Graph of layers stacked from the bottom, newest sample on the right: each layer a share of the
-/// height (`0.0..=1.0` per sample, newest first) in its own style. Lower layers end on whole cells,
-/// the top layer in eighths.
+/// height (`0.0..=1.0` per sample, newest first) in its own color. Where two layers meet inside a
+/// cell, the lower one is drawn in eighths over the upper one's color as the background.
 pub(super) struct Stacked<'a> {
   pub(super) layers: Vec<(&'a [f64], Style)>,
 }
@@ -227,28 +227,30 @@ pub(super) struct Stacked<'a> {
 impl Widget for Stacked<'_> {
   fn render(self, area: Rect, buf: &mut Buffer) {
     let area = area.intersection(buf.area);
-    let levels = f64::from(area.height) * 8.0;
+    let levels = u64::from(area.height) * 8;
     for (i, x) in (area.left()..area.right()).rev().enumerate() {
-      let mut start = 0u64;
-      for (n, (data, style)) in self.layers.iter().enumerate() {
-        let Some(&share) = data.get(i) else { break };
-        let top = n + 1 == self.layers.len();
-        let mut end = start + (share.clamp(0.0, 1.0) * levels).round() as u64;
-        if !top {
-          end = end.div_ceil(8) * 8;
+      // top level of each layer, in eighths from the bottom
+      let mut ends = vec![];
+      let mut end = 0u64;
+      for (data, style) in &self.layers {
+        let share = data.get(i).copied().unwrap_or(0.0).clamp(0.0, 1.0);
+        end = (end + (share * levels as f64).round() as u64).min(levels);
+        ends.push((end, *style));
+      }
+      let at = |level: u64| ends.iter().find(|(end, _)| level < *end).map(|(_, s)| *s);
+      for row in 0..u64::from(area.height) {
+        let (bottom, top) = (row * 8, row * 8 + 7);
+        let Some(lower) = at(bottom) else { break };
+        let boundary = ends.iter().map(|(e, _)| *e).find(|&e| e > bottom).unwrap_or(bottom);
+        let cell = &mut buf[(x, area.bottom() - 1 - row as u16)];
+        if boundary > top {
+          cell.set_char(FULL).set_style(lower);
+          continue;
         }
-        let mut level = start;
-        while level < end {
-          let row = (level / 8) as u16;
-          if row >= area.height {
-            break;
-          }
-          let eighths = (end - level).min(8 - level % 8);
-          let symbol = if level % 8 == 0 { bar_symbol(eighths, false) } else { FULL };
-          buf[(x, area.bottom() - 1 - row)].set_char(symbol).set_style(*style);
-          level += eighths;
+        cell.set_char(bar_symbol(boundary - bottom, false)).set_style(lower);
+        if let Some(upper) = at(top).and_then(|s| s.fg) {
+          cell.set_bg(upper);
         }
-        start = end;
       }
     }
   }
